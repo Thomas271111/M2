@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Icon } from "../components/ui/Icon.jsx";
-import { inputClass, FormField } from "../components/ui/FormField.jsx";
+import { LOGIN_VALIDATORS } from "../authValidators.js";
+import { LoginFormFields } from "../components/auth/LoginFormFields.jsx";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -10,17 +11,26 @@ export function LoginPage() {
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+
+  function handleChange(field, value) {
+    if (field === "email") setEmail(value);
+    else setPassword(value);
+    if (errors[field]) setErrors((e) => ({ ...e, [field]: LOGIN_VALIDATORS[field](value) }));
+  }
+
+  function handleBlur(field, value) {
+    setErrors((e) => ({ ...e, [field]: LOGIN_VALIDATORS[field](value) }));
+  }
 
   function handleSubmit(e) {
     e.preventDefault();
-    const result = login(email, password);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    const dest = location.state?.from?.pathname || "/dashboard";
-    navigate(dest, { replace: true });
+    const newErrors = { email: LOGIN_VALIDATORS.email(email), password: LOGIN_VALIDATORS.password(password) };
+    setErrors(newErrors);
+    if (newErrors.email || newErrors.password) return;
+
+    login(email);
+    navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
   }
 
   return (
@@ -35,31 +45,12 @@ export function LoginPage() {
 
         <div className="rounded-card border border-border bg-surface shadow-lifted p-6 sm:p-8">
           <h1 className="font-display text-xl font-semibold text-text text-center">Inicia sesión</h1>
-          <p className="text-sm text-text-muted text-center mt-1.5">Prototipo académico: cualquier correo y contraseña funcionan.</p>
+          <p className="text-sm text-text-muted text-center mt-1.5">
+            Prototipo académico: valida el formato de tus datos, pero no verifica contra una cuenta real.
+          </p>
 
           <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
-            <FormField label="Correo electrónico" htmlFor="email" required>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={inputClass}
-                placeholder="tucorreo@ejemplo.com"
-                autoComplete="email"
-              />
-            </FormField>
-            <FormField label="Contraseña" htmlFor="password" required error={error}>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={inputClass}
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </FormField>
+            <LoginFormFields email={email} password={password} errors={errors} onChange={handleChange} onBlur={handleBlur} />
             <button type="submit" className="focus-ring w-full rounded-control bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-hover">
               Entrar
             </button>

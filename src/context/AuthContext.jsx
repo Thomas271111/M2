@@ -6,12 +6,8 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useLocalStorage("mihato:auth", null);
 
-  function login(email, password) {
-    if (!email.trim() || !password.trim()) {
-      return { ok: false, error: "Ingresa correo y contraseña." };
-    }
+  function login(email) {
     setUser({ email: email.trim() });
-    return { ok: true };
   }
 
   function logout() {
